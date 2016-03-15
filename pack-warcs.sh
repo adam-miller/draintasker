@@ -64,7 +64,7 @@ function query_user {
 # decompose WARC-NAME according to WARC_NAME_PATTERN and stores
 # each component into variable ${VAR_PREFIX}COMPONENT
 function parse_warc_name {
-  local re=$(sed -e 's/{[^}]*}/(.*)/g' <<<"$WARC_NAME_PATTERN")
+  local re=$(sed -e 's/{timestamp}/(timestamp)/' <<<"$WARC_NAME_PATTERN" | sed -e 's/{[^}]*}/(.*)/g' | sed -e 's/(timestamp)/([0-9]{14})/')
   local names=($(sed -e 's/[^}]*{\([^}]*\)}[^{]*/\1 /g' <<<"$WARC_NAME_PATTERN") ext gz)
 
   if [[ "$1" =~ ^$re(\.w?arc(\.gz)?)$ ]]; then
@@ -146,8 +146,8 @@ warc_series=''
 #   exit 2
 # fi
 
-SUFFIX_RE='\.w?arc\(\.gz\)?'
-WARC_NAME_RE="$(sed -e 's/{[^}]*}/\\(.*\\)/g' <<<"$WARC_NAME_PATTERN")"
+SUFFIX_RE='\.w?arc(\.gz)?'
+WARC_NAME_RE="$(sed -e 's/{timestamp}/(timestamp)/' <<<"$WARC_NAME_PATTERN" | sed -e 's/{[^}]*}/(.*)/g' | sed -e 's/(timestamp)/([0-9]{14})/')"
 WARC_NAME_RE_FIND=".*/${WARC_NAME_RE}${SUFFIX_RE}"'$'
 
 open="$job_dir/PACKED.open"
@@ -179,7 +179,7 @@ echo $$ > $open || {
   exit 1
 }
 
-for w in $(find $job_dir -maxdepth 1 -regex "${WARC_NAME_RE_FIND}"); do
+for w in $(find $job_dir -regextype posix-egrep -maxdepth 1 -regex "${WARC_NAME_RE_FIND}"); do
     ((total_num_warcs++))
     ((total_size_warcs += $(stat -c %s $w)))
 done
@@ -216,7 +216,7 @@ mfiles=()  # manifest files array
 
 # loop over warcs in job dir
 cd $job_dir
-for w in $(find $job_dir -maxdepth 1 -regex "${WARC_NAME_RE_FIND}" | sort)
+for w in $(find $job_dir -regextype posix-egrep -maxdepth 1 -regex "${WARC_NAME_RE_FIND}" | sort)
 do 
   if [[ $w =~ \.gz$ ]]; then
     # check gzip container
