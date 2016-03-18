@@ -79,7 +79,7 @@ function clean_item {
 	return 1
       fi
       echo "removing $w uploaded to $(cat $d/$t)" >&2
-      rm $d/$w || return 1
+      rm -f $d/$w || return 1
       (( count_removed++ ))
     else
       # missing (already deleted) files are okay. this shouldn't happen under
