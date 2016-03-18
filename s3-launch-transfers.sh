@@ -499,8 +499,8 @@ do
 
   num_warcs=${nfiles_manifest}
   size_hint=`cat $PACKED | awk '{print $NF}'`
-  first_serial=$(parse_warc_name "$(basename "$first_file")"; echo $serial)
-  last_serial=$(parse_warc_name "$(basename "$last_file")"; echo $serial)
+#  first_serial=$(parse_warc_name "$(basename "$first_file")"; echo $serial)
+#  last_serial=$(parse_warc_name "$(basename "$last_file")"; echo $serial)
 
   # metadata per BK, intended to be like books
   #   Subject: metadata for the web stuff going into the paired archive
@@ -529,9 +529,9 @@ do
       "x-archive-meta-crawljob:${crawljob}"
       "x-archive-meta-numwarcs:${num_warcs}"
       "x-archive-meta-sizehint:${size_hint}"
-      "x-archive-meta-firstfileserial:${first_serial}"
+#      "x-archive-meta-firstfileserial:${first_serial}"
       "x-archive-meta-firstfiledate:${first_file_date}"
-      "x-archive-meta-lastfileserial:${last_serial}"
+#      "x-archive-meta-lastfileserial:${last_serial}"
       "x-archive-meta-lastfiledate:${last_file_date}"
       "x-archive-meta-lastdate:${last_date}"
   )
