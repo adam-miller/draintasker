@@ -63,7 +63,7 @@ function echorun {
 }
 
 function parse_warc_name {
-  local re=$(sed -e 's/{[^}]*}/(.*)/g' <<<"$WARC_NAME_PATTERN")
+  local re=$(sed -e 's/{timestamp}/(timestamp)/' <<<"$WARC_NAME_PATTERN" | sed -e 's/{[^}]*}/(.*)/g' | sed -e 's/(timestamp)/([0-9]{14,17})/')
   local names=($(sed -e 's/[^}]*{\([^}]*\)}[^{]*/\1 /g' <<<"$WARC_NAME_PATTERN") ext gz)
 
   if [[ "$1" =~ ^$re(\.w?arc(\.gz)?)$ ]]; then
