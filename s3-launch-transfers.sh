@@ -43,7 +43,7 @@ BIN=$(dirname $PG)
 
 usage="config [force] [mode=single]"
 
-s3='s3.us.archive.org'
+s3='s3-lb0.us.archive.org'
 dl='www.archive.org/download'
 std_warc_size=$(( 1024*1024*1024 )) # 1 gibibyte
 
@@ -534,6 +534,7 @@ do
 #      "x-archive-meta-lastfileserial:${last_serial}"
       "x-archive-meta-lastfiledate:${last_file_date}"
       "x-archive-meta-lastdate:${last_date}"
+      "x-archive-meta-noindex:1"
   )
   # support multiple arbitrary collections
   # webwidecrawl/collection/serial
