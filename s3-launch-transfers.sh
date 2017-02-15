@@ -534,6 +534,7 @@ do
       "x-archive-meta-lastfileserial:${last_serial}"
       "x-archive-meta-lastfiledate:${last_file_date}"
       "x-archive-meta-lastdate:${last_date}"
+      "x-archive-meta-noindex:1"
   )
   # support multiple arbitrary collections
   # webwidecrawl/collection/serial
