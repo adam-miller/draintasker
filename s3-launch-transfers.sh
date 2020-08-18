@@ -162,7 +162,7 @@ function verify_etag {
         # and avoids the problem i had using grep + awk + tr 
         # which resulted in a ^M in the output, which failed 
         # the equality test below when it shouldn't have
-        etag=`sed -ne '/ETag/{s/.*"\(.*\)".*/\1/p;q}' $tmpfile`
+        etag=`sed -ne '/^ETag:/I{s/.*"\(.*\)".*/\1/p;q}' $tmpfile`
         if [ "$etag" != "$checksum" ]
         then
             # eventually want to retry, but let's see how often 
@@ -233,19 +233,22 @@ function check_curl_success {
         then
     	    echo "SUCCESS: S3 PUT succeeded with response_code:"\
                  "$response_code" | tee -a $OPEN
-	    case $upload_type in
-	    auto-make-bucket)
-		bucket_status=1;;
-	    test-add-to-bucket)
-		bucket_status=1
-		echo "creating file: $BUCKET_OK" >>$OPEN
-		echo $bucket > $BUCKET_OK
-		;;
-	    *)
-		if verify_etag; then
-                    write_tombstone >>$OPEN
-		fi
-	    esac
+            case $upload_type in
+                auto-make-bucket)
+                    bucket_status=1
+                    echo "creating file: $BUCKET_OK" >> $OPEN
+                    echo $bucket > $BUCKET_OK
+                    ;;
+                test-add-to-bucket)
+                    bucket_status=1
+                    echo "creating file: $BUCKET_OK" >> $OPEN
+                    echo $bucket > $BUCKET_OK
+                    ;;
+                *)
+                    if verify_etag; then
+                        write_tombstone >>$OPEN
+                    fi
+            esac
             keep_trying='false'
         else
             (( retry_count++ ))
@@ -324,14 +327,21 @@ fi
 
 echo $(basename $0) $(date)
 
-S3CFG=$HOME/.ias3cfg
-
 if [ ! -f $CONFIG ]; then
     echo "ERROR: config not found: $CONFIG"
     exit 1
 fi
+
+if [ -z "$S3CFG" ]; then
+  for d in "$(dirname $CONFIG)" $HOME; do
+    S3CFG=$d/.ias3cfg
+    if [ -f $S3CFG ]; then
+      break
+    fi
+  done
+fi
 if [ ! -f $S3CFG ]; then
-    echo "ERROR: s3cfg not found: $S3CFG"
+    echo "ERROR: IAS3 credentials file not found: $S3CFG"
     exit 1
 fi
 # validate configuration
@@ -521,20 +531,30 @@ do
 
   metadata+=(
       "x-archive-meta-identifier-access:https://archive.org/details/${bucket}"
-      "x-archive-meta-crawler:${crawler_version}"
       "x-archive-meta-title:${title}"
       "x-archive-meta-description:${description}"
       "x-archive-meta-scandate:${scandate}"
       "x-archive-meta-date:${metadate}"
-      "x-archive-meta-crawljob:${crawljob}"
-      "x-archive-meta-numwarcs:${num_warcs}"
       "x-archive-meta-sizehint:${size_hint}"
-      "x-archive-meta-firstfileserial:${first_serial}"
       "x-archive-meta-firstfiledate:${first_file_date}"
-      "x-archive-meta-lastfileserial:${last_serial}"
       "x-archive-meta-lastfiledate:${last_file_date}"
       "x-archive-meta-lastdate:${last_date}"
   )
+  if [ -n "$crawler_version" ]; then
+      metadata+=("x-archive-meta-crawler:${crawler_version}")
+  fi
+  if [ -n "$crawljob" ]; then
+      metadata+=("x-archive-meta-crawljob:${crawljob}")
+  fi
+  if [ -n "$num_warcs" ]; then
+      metadata+=("x-archive.meta-numwarcs:${num_warcs}")
+  fi
+  if [ -n "$first_serial" ]; then
+      metadata+=("x-archive-meta-firstfileserial:${first_serial}")
+  fi
+  if [ -n "$last_serial" ]; then
+      metadata+=("x-archive-meta-lastfileserial:${last_serial}")
+  fi
   # support multiple arbitrary collections
   # webwidecrawl/collection/serial
   #   => collection3 = webwidecrawl
@@ -606,7 +626,7 @@ do
   )
   derive_opts=(--header 'x-archive-queue-derive:1')
   noderive_opts=(--header 'x-archive-queue-derive:0')
-  automakebucket_opts=(--header 'x-amz-auto-make-bucket:1')
+  automakebucket_opts=(--header 'x-archive-auto-make-bucket:1')
   sizehint_opts=(--header "x-archive-size-hint:${size_hint}")
   itemmeta_opts=()
   for m in "${metadata[@]}"; do
@@ -705,6 +725,7 @@ do
 	      copts=(
 		  "${common_opts[@]}"
 		  --header "Content-MD5:${checksum}"
+		  "${automakebucket_opts[@]}"
 		  "${derive_header[@]}"
 		  --upload-file "${filepath}"
 	      )
